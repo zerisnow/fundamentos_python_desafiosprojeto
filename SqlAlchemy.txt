@@ -1,0 +1,51 @@
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, sessionmaker
+
+Base = declarative_base()
+
+class Cliente(Base):
+    __tablename__ = 'clientes'
+
+    id = Column(Integer, primary_key=True)
+    nome = Column(String)
+    sobrenome = Column(String)
+    contas = relationship('Conta', back_populates='cliente')
+
+class Conta(Base):
+    __tablename__ = 'contas'
+
+    id = Column(Integer, primary_key=True)
+    numero = Column(String)
+    saldo = Column(Integer)
+    cliente_id = Column(Integer, ForeignKey('clientes.id'))
+    cliente = relationship('Cliente', back_populates='contas')
+
+engine = create_engine('sqlite:///banco.db')
+Base.metadata.create_all(engine)
+
+Session = sessionmaker(bind=engine)
+session = Session()
+
+# Criando um cliente
+cliente1 = Cliente(nome='João', sobrenome='Silva')
+
+# Criando duas contas para esse cliente
+conta1 = Conta(numero='12345', saldo=1000, cliente=cliente1)
+conta2 = Conta(numero='54321', saldo=1500, cliente=cliente1)
+
+# Adicionando os objetos à sessão e commitando as transações
+session.add(cliente1)
+session.add(conta1)
+session.add(conta2)
+session.commit()
+
+# Recuperando todos os clientes
+todos_clientes = session.query(Cliente).all()
+for cliente in todos_clientes:
+    print(f'Cliente: {cliente.nome} {cliente.sobrenome}')
+
+# Recuperando todas as contas de um cliente específico
+contas_do_joao = session.query(Conta).join(Cliente).filter(Cliente.nome=='João').all()
+for conta in contas_do_joao:
+    print(f'Conta: {conta.numero}, Saldo: {conta.saldo}')
